@@ -1,0 +1,15 @@
+C:\Users\choi_jongmyoung\Desktop\c#\MapGenTest\obj\Debug\net6.0\MapGenTest.csproj.AssemblyReference.cache
+C:\Users\choi_jongmyoung\Desktop\c#\MapGenTest\obj\Debug\net6.0\MapGenTest.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\choi_jongmyoung\Desktop\c#\MapGenTest\obj\Debug\net6.0\MapGenTest.AssemblyInfoInputs.cache
+C:\Users\choi_jongmyoung\Desktop\c#\MapGenTest\obj\Debug\net6.0\MapGenTest.AssemblyInfo.cs
+C:\Users\choi_jongmyoung\Desktop\c#\MapGenTest\obj\Debug\net6.0\MapGenTest.csproj.CoreCompileInputs.cache
+C:\Users\choi_jongmyoung\Desktop\c#\MapGenTest\bin\Debug\net6.0\MapGenTest.exe
+C:\Users\choi_jongmyoung\Desktop\c#\MapGenTest\bin\Debug\net6.0\MapGenTest.deps.json
+C:\Users\choi_jongmyoung\Desktop\c#\MapGenTest\bin\Debug\net6.0\MapGenTest.runtimeconfig.json
+C:\Users\choi_jongmyoung\Desktop\c#\MapGenTest\bin\Debug\net6.0\MapGenTest.dll
+C:\Users\choi_jongmyoung\Desktop\c#\MapGenTest\bin\Debug\net6.0\MapGenTest.pdb
+C:\Users\choi_jongmyoung\Desktop\c#\MapGenTest\obj\Debug\net6.0\MapGenTest.dll
+C:\Users\choi_jongmyoung\Desktop\c#\MapGenTest\obj\Debug\net6.0\refint\MapGenTest.dll
+C:\Users\choi_jongmyoung\Desktop\c#\MapGenTest\obj\Debug\net6.0\MapGenTest.pdb
+C:\Users\choi_jongmyoung\Desktop\c#\MapGenTest\obj\Debug\net6.0\MapGenTest.genruntimeconfig.cache
+C:\Users\choi_jongmyoung\Desktop\c#\MapGenTest\obj\Debug\net6.0\ref\MapGenTest.dll
