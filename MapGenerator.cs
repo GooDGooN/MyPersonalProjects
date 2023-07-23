@@ -19,12 +19,15 @@ namespace MapGenTest
         public readonly int x;
         public readonly int y;
         public readonly bool[] MyEnableDir;
-        public readonly int MyLastRoomDirNum;
-        public Room(int roomx, int roomy, bool[] enableDir)
+        public readonly int RoomID;
+        public readonly int RoomBitDir;
+        public Room(int roomx, int roomy, bool[] enableDir, int roomID, int roomBitDir)
         {
             x = roomx;
             y = roomy;
             MyEnableDir = enableDir;
+            RoomID = roomID;
+            RoomBitDir = roomBitDir;
         }
     }
 
@@ -34,27 +37,20 @@ namespace MapGenTest
         public int MaxX;
         public int MaxY;
         public List<Room> Rooms = new List<Room>();
-        public MapGenerator(int mapSizeX, int mapSizeY) 
+        public MapGenerator(int mapSizeX, int mapSizeY)
         {
             MaxX = mapSizeX;
             MaxY = mapSizeY;
         }
 
-        public string GetSymbols(bool[] dirs)
+        public string GetSymbols(int bitdirs)
         {
-            var bitdirs = default(int);
-            foreach (var dir in dirs) 
-            {
-                bitdirs <<= 1;
-                if (dir) { bitdirs |= 1; }
-            }
-            int.TryParse(Convert.ToString(bitdirs, 2),out bitdirs);
             string result = bitdirs switch
             {
-                1000 => "←",
-                0100 => "↓",
-                0010 => "→",
-                0001 => "↑",
+                1000 => "→",
+                0100 => "↑",
+                0010 => "←",
+                0001 => "↓",
                 1100 => "┗",
                 1010 => "━",
                 1001 => "┏",
@@ -72,7 +68,10 @@ namespace MapGenTest
             return result;
         }
 
-        public void DrawCurrentMap()
+        /// <summary>
+        /// 테스트용 출력
+        /// </summary>
+        public void DrawCurrentMapForTest()
         {
             for (int my = 0; my < MaxY; my++)
             {
@@ -81,9 +80,17 @@ namespace MapGenTest
                     bool skip = false;
                     foreach (Room room in Rooms)
                     {
-                        if(room.x == mx && room.y == my)
+                        if (room.x == mx && room.y == my)
                         {
-                            Console.Write($"[{GetSymbols(room.MyEnableDir)} ] ");
+                            var dirSymbol = GetSymbols(room.RoomBitDir);
+                            if (dirSymbol == "→" || dirSymbol == "↑" || dirSymbol == "←" || dirSymbol == "↓")
+                            {
+                                Console.Write($"[{dirSymbol}] ");
+                            }
+                            else
+                            {
+                                Console.Write($"[{dirSymbol} ] ");
+                            }
                             skip = true;
                             break;
                         }
@@ -92,17 +99,7 @@ namespace MapGenTest
                 }
                 Console.WriteLine("\n");
             }
-
-            foreach (var room in Rooms)
-            {
-                /*
-                Console.WriteLine($"x : {room.x} | y : {room.y} ");
-                Console.WriteLine($"  Right : {room.MyEnableDir[0]}");
-                Console.WriteLine($"  Up : {room.MyEnableDir[1]}");
-                Console.WriteLine($"  Left : {room.MyEnableDir[2]}");
-                Console.WriteLine($"  Down : {room.MyEnableDir[3]}");
-                */
-            }
+            Console.WriteLine("\n");
 
             for (int my = 0; my < MaxY; my++)
             {
@@ -113,106 +110,170 @@ namespace MapGenTest
                     {
                         if (room.x == mx && room.y == my)
                         {
-                            Console.Write($"[1] ");
+                            if (room.RoomID < 10)
+                            {
+                                Console.Write($"[0{room.RoomID}] ");
+                            }
+                            else
+                            {
+                                Console.Write($"[{room.RoomID}] ");
+                            }
                             skip = true;
                             break;
                         }
                     }
-                    if (!skip) { Console.Write($"[0] "); }
+                    if (!skip) { Console.Write($"[  ] "); }
                 }
                 Console.WriteLine("\n");
             }
-
+            Console.WriteLine("\n");
             Console.WriteLine($"룸 수 : {Rooms.Count}");
+            Console.WriteLine();
+            foreach (var room in Rooms)
+            {
+                Console.WriteLine($"[{room.RoomID}].bitdir = {room.RoomBitDir}");
+            }
         }
 
-        public bool CheckInsideMap(int x, int y)
-        {
-            if (x >= 0 && x < MaxX && y >= 0 && y < MaxY)
-            {
-                return true;
-            }
-            return false;
-        }
 
         public void MapGen()
         {
-            Rooms = new List<Room>();
-            var roomAmountLimit = new Tuple<int, int>((int)((MaxX * MaxY) * 0.5f), (int)((MaxX * MaxY) * 0.6f));
-            int startPointAmount = Random.Shared.Next(3, 5);
-            int maxRepeat = (MaxX + MaxY) - startPointAmount * 2;
-            bool[] dir = new bool[4]; // 1r 2u 3l 4d
-            var startPointx = ((MaxX) / 2) + Random.Shared.Next(-1, 1);
-            var startPointy = ((MaxY) / 2) + Random.Shared.Next(-1, 1);
 
+            var roomAmountLimit = new Tuple<int, int>((int)((MaxX * MaxY) * 0.6f), (int)((MaxX * MaxY) * 0.8f));
+            bool[] dir = new bool[4]; // 1r 2u 3l 4d
+            var startPointx = ((MaxX) / 2) + Random.Shared.Next(-1, 2);
+            var startPointy = ((MaxY) / 2) + Random.Shared.Next(-1, 2);
+            var roomID = 0;
             List<Tuple<int, int>> roomCreator = new List<Tuple<int, int>> // x,y
             {
                 new Tuple<int, int>(startPointx, startPointy)
             };
-            //for (int repeat = 0; repeat < MaxX - 1; repeat++)
-            for (int repeat = 0; repeat < 2; repeat++)
+            List<Tuple<int, int>> newRoom = new List<Tuple<int, int>>();
+
+            bool totalLoopbreakable = false;
+            while (!totalLoopbreakable) 
             {
-                List<Tuple<int, int>> newRoom = new List<Tuple<int, int>>();
-                foreach (var room in roomCreator)
-                {
-                    dir = SetRandomDir(room.Item1, room.Item2);
-                    if (dir.Count(i => i == true) > 1 || repeat == 0)
-                    {
-                        if (dir[0]) // r
-                        {
-                            newRoom.Add(new Tuple<int, int>(room.Item1 + 1, room.Item2));
-                        }
-                        if (dir[1]) // u
-                        {
-                            newRoom.Add(new Tuple<int, int>(room.Item1, room.Item2 - 1));
-                        }
-                        if (dir[2]) // l
-                        {
-                            newRoom.Add(new Tuple<int, int>(room.Item1 - 1, room.Item2));
-                        }
-                        if (dir[3]) // d
-                        {
-                            newRoom.Add(new Tuple<int, int>(room.Item1, room.Item2 + 1));
-                        }
-                        Rooms.Add(new Room(room.Item1, room.Item2, dir));
-                    }
-                }
+                Console.Clear();
+                roomID = 0;
+                int maxRepeat = ((MaxX + MaxY) / 2) + Random.Shared.Next(0, (MaxX + MaxY) / 2) - 1;
+                startPointx = ((MaxX) / 2) + Random.Shared.Next(-1, 2);
+                startPointy = ((MaxY) / 2) + Random.Shared.Next(-1, 2);
+
                 roomCreator.Clear();
-                foreach (var room in newRoom)
+                roomCreator.Add(new Tuple<int, int>(startPointx, startPointy));
+                Rooms.Clear();
+                totalLoopbreakable = true;
+                for (int repeat = 0; repeat < maxRepeat; repeat++)
                 {
-                    roomCreator.Add(room);
-                }
-            }
-            /*
-            // 검사
-            var count = Math.Clamp(Rooms.Count(), roomAmountLimit.Item1, roomAmountLimit.Item2);
-            if (count == Rooms.Count())
-            {
-                for (int i = 0; i < MaxY; i++)
-                {
-                    if (ActiveRoomCount(-1, i) == 0)
+                    newRoom.Clear();
+                    foreach (var room in roomCreator)
                     {
-                        MapGen();
-                        return;
+                        dir = SetRandomDir(room.Item1, room.Item2);
+
+                        if (dir.Count(i => i == true) > 0)
+                        {
+                            if (dir[0]) // r
+                            {
+                                if (CheckConnectableDir(room.Item1 + 1, room.Item2).Count(i => i == true) > 0 || repeat == 0)
+                                {
+                                    newRoom.Add(new Tuple<int, int>(room.Item1 + 1, room.Item2));
+                                }
+                            }
+                            if (dir[1]) // u
+                            {
+                                if (CheckConnectableDir(room.Item1, room.Item2 - 1).Count(i => i == true) > 0 || repeat == 0)
+                                {
+                                    newRoom.Add(new Tuple<int, int>(room.Item1, room.Item2 - 1));
+                                }
+                            }
+                            if (dir[2]) // l
+                            {
+                                if (CheckConnectableDir(room.Item1 - 1, room.Item2).Count(i => i == true) > 0 || repeat == 0)
+                                {
+                                    newRoom.Add(new Tuple<int, int>(room.Item1 - 1, room.Item2));
+                                }
+                            }
+                            if (dir[3]) // d
+                            {
+                                if (CheckConnectableDir(room.Item1, room.Item2 + 1).Count(i => i == true) > 0 || repeat == 0)
+                                {
+                                    newRoom.Add(new Tuple<int, int>(room.Item1, room.Item2 + 1));
+                                }
+                            }
+
+                            //Console.Write($"room id : {roomID}, x : {room.Item1}, y : {room.Item2}\n");
+                            if (!IsRoomHere(room.Item1, room.Item2))
+                            {
+                                Rooms.Add(new Room(room.Item1, room.Item2, dir, roomID++, ConvertTheDirToInt(dir)));
+                            }
+                        }
+                        //GC.Collect();
+                    }
+                    roomCreator.Clear();
+                    foreach (var room in newRoom)
+                    {
+                        roomCreator.Add(room);
                     }
                 }
-                for (int i = 0; i < MaxX; i++)
+
+                // 맵 마무리
+                for(int x = 0; x < MaxX; x++)
                 {
-                    if (ActiveRoomCount(i) == 0)
+                    for(int y = 0; y < MaxY; y++) 
                     {
-                        MapGen();
-                        return;
+                        var connectableDir = CheckConnectableDir(x, y);
+                        if (!IsRoomHere(x, y) && connectableDir.Count(i => i == true) > 0)
+                        {
+                            Rooms.Add(new Room(x, y, connectableDir, roomID++, ConvertTheDirToInt(connectableDir)));
+                        }
                     }
                 }
+                if (Rooms.Count >= roomAmountLimit.Item1 && Rooms.Count <= roomAmountLimit.Item2)
+                {
+                    for (int i = 0; i < MaxY; i++)
+                    {
+                        if (ActiveRoomCount(-1, i) == 0)
+                        {
+                            totalLoopbreakable = false;
+                            break;
+                        }
+                    }
+                    for (int i = 0; i < MaxX; i++)
+                    {
+                        if (ActiveRoomCount(i) == 0)
+                        {
+                            totalLoopbreakable = false;
+                            break;
+                        }
+                    }
+                }
+                else
+                {
+                    totalLoopbreakable = false;
+                }
+                
             }
-            else
+
+        }
+        
+        /// <summary>
+        /// 방향을 2진수로 반환, R/U/L/D 
+        /// </summary>
+        private int ConvertTheDirToInt(bool[] dirs)
+        {
+            var bitdirs = default(int);
+            foreach (var dir in dirs)
             {
-                MapGen();
-                return;
+                bitdirs <<= 1;
+                if (dir) { bitdirs |= 1; }
             }
-            */
+            int.TryParse(Convert.ToString(bitdirs, 2), out bitdirs);
+            return bitdirs;
         }
 
+        /// <summary>
+        /// 연결 가능한 룸이 있는지 검색 후 연결이 가능한 현재 룸의 방향을 반환
+        /// </summary>
         public bool[] CheckConnectableDir(int currentX, int currentY)
         {
             bool[] connectableDirs = new bool[4];
@@ -229,28 +290,29 @@ namespace MapGenTest
                 {
                     ydelta = (i == 0) ? -1 : 1;
                 }
+
                 foreach (var room in Rooms)
                 {
                     if (room.x == currentX + xdelta && room.y == currentY + ydelta)
                     {
-                        if (room.MyEnableDir[0] == true)
+                        if(xdelta == -1 && room.MyEnableDir[0])
                         {
                             connectableDirs[2] = true;
                         }
-                        if (room.MyEnableDir[1] == true)
-                        {
-                            connectableDirs[3] = true;
-                        }
-                        if (room.MyEnableDir[2] == true)
-                        {
-                            connectableDirs[0] = true;
-                        }
-                        if (room.MyEnableDir[3] == true)
+                        if (ydelta == -1 && room.MyEnableDir[3])
                         {
                             connectableDirs[1] = true;
                         }
+                        if (xdelta == 1 && room.MyEnableDir[2])
+                        {
+                            connectableDirs[0] = true;
+                        }
+                        if(ydelta == 1 && room.MyEnableDir[1])
+                        {
+                            connectableDirs[3] = true;
+                        }
+                        break;
                     }
-                    break;
                 }   
             }
             return connectableDirs;
@@ -297,10 +359,24 @@ namespace MapGenTest
                     dirs[i] = connectableDir[i];
                 }
             }
-
-
             return dirs;
         }
+
+        /// <summary>
+        /// 해당 위치가 맵 안에 있는 것인지 확인
+        /// </summary>
+        public bool CheckInsideMap(int x, int y)
+        {
+            if (x >= 0 && x < MaxX && y >= 0 && y < MaxY)
+            {
+                return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// 이미 해당 위치에 룸이 존재하는지 검사
+        /// </summary>
         public bool IsRoomHere(int nextx, int nexty)
         {
             foreach (Room room in Rooms)
@@ -313,142 +389,9 @@ namespace MapGenTest
             }
             return false;
         }
-        /*
-        public bool IsCanMoveHere(int currentx, int currenty, int nextx, int nexty, bool includeRoom = false)
-        {
-            foreach (Room room in Rooms)
-            {
-                if(includeRoom)
-                {
-                    if (room.x == nextx && room.y == nexty)
-                    {
-                        //check connectable
-                        switch(nextx - currentx)
-                        {
-                            case -1:
-                                if (room.MyEnableDir[0])
-                                {
-                                    return true;
-                                }
-                                break;
-                            case 1:
-                                if (room.MyEnableDir[2])
-                                {
-                                    return true;
-                                }
-                                break;
-                        }
-                        switch (nexty - currenty)
-                        {
-                            case -1:
-                                if (room.MyEnableDir[1])
-                                {
-                                    return true;
-                                }
-                                break;
-                            case 1:
-                                if (room.MyEnableDir[3])
-                                {
-                                    return true;
-                                }
-                                break;
-                        }
-                        return true;
-                    }
-                }
-                if (room.x != nextx && room.y != nexty)
-                {
-                    return true;
-                }
-            }
-            return false;
-        }
-        */
-        /*
-        private Vector2 NextPos(int currentX, int currentY)
-        {
-            List<Tuple<int, int>> listtuple = new List<Tuple<int, int>>();
-            
-            for(int xy = 0; xy < 2; xy++)
-            {
-                for (int delta = -1; delta < 2; delta += 2)
-                {
-                    if(xy == 0 && (currentX + delta >= 0 && currentX + delta < MaxX))
-                    {
-                        if (Maps[currentX + delta, currentY] == 0)
-                        {
-                            listtuple.Add(new Tuple<int, int>(currentX + delta, currentY));
-                        }
-                    }
-                    if (xy == 1 && (currentY + delta >= 0 && currentY + delta < MaxY))
-                    {
-                        if (Maps[currentX, currentY + delta] == 0)
-                        {
-                            listtuple.Add(new Tuple<int, int>(currentX, currentY + delta));
-                        }
-                    }
-                }
-            }
-            if (listtuple.Count > 0)
-            {
-                var randomPos = listtuple[Random.Shared.Next(listtuple.Count)];
-                var result = new Vector2(randomPos.Item1, randomPos.Item2);
-                return result;
-            }
-            return Vector2.Zero;
-        }
-        public void MapGen()
-        {
-            Maps = new int[MaxX, MaxY];
-            var roomAmountLimit = new Tuple<int, int>((int)((MaxX * MaxY) * 0.2f), (int)((MaxX * MaxY) * 0.5f));
-            int startPointAmount = Random.Shared.Next(3, 5);
-            int maxRepeat = (MaxX + MaxY) - startPointAmount * 2;
-
-            var startPointx = ((MaxX) / 2);
-            var startPointy = ((MaxY) / 2);
-
-            Vector2[] roomCreator = new Vector2[startPointAmount];
-            Array.Fill(roomCreator, new Vector2(startPointx, startPointy));
-            Maps[startPointx, startPointy] = 1;
-            for(int repeat = 0; repeat < maxRepeat; repeat++)
-            {
-                for (int i = 0; i < startPointAmount; i++)
-                {
-                    roomCreator[i] = NextPos((int)roomCreator[i].X, (int)roomCreator[i].Y);
-                    if (roomCreator[i] == Vector2.Zero)
-                    {
-                        MapGen();
-                        return;
-                    }
-                    Maps[(int)roomCreator[i].X, (int)roomCreator[i].Y] = 1;
-                }
-            }
-
-            var count = ActiveRoomCount();
-            if (Math.Clamp(count, roomAmountLimit.Item1, roomAmountLimit.Item2) == ActiveRoomCount()) // 검사
-            {
-                for (int i = 0; i < MaxY; i++)
-                {
-                    if (ActiveRoomCount(i) == 0)
-                    {
-                        MapGen();
-                    }
-                }
-                for (int i = 0; i < MaxX; i++)
-                {
-                    if (ActiveRoomCount(-1, i) == 0)
-                    {
-                        MapGen();
-                    }
-                }
-            }
-            else
-            {
-                MapGen();
-            }
-        }
-        */
-
+        /// <summary>
+        /// 맵 완성 후 활성화된 룸 체크
+        /// </summary>
         public int ActiveRoomCount(int xPos = -1, int yPos = -1)
         {
             int amount = 0;
@@ -465,16 +408,6 @@ namespace MapGenTest
                         amount++;
                     }
                 }
-                /*
-                for(int i = 0; i < MaxX; i++)
-                {
-                    
-                    if(Maps[i, yPos] == 1)
-                    {
-                        amount++;
-                    }
-                }
-                */
             }
             else if (xPos != -1)
             {
@@ -485,14 +418,6 @@ namespace MapGenTest
                         amount++;
                     }
                 }
-                /*
-                for (int i = 0; i < MaxY; i++)
-                {
-                    if (Maps[xPos, i] == 1)
-                    {
-                        amount++;
-                    }
-                }*/
             }
             return amount;
         }
