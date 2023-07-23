@@ -4,13 +4,6 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Numerics;
-using System.Reflection;
-using System.Runtime.Intrinsics.X86;
-using System.Runtime.Serialization.Formatters;
-using System.Security.Cryptography;
-using System.Text;
-using System.Threading.Tasks;
-using System.Transactions;
 
 namespace MapGenTest
 {

@@ -8,12 +8,11 @@ namespace Program
     {
         private static void Main(string[] args) 
         {
-            MapGenerator mapGenerator = new MapGenerator(5, 3);
+            MapGenerator mapGenerator = new MapGenerator(6, 4);
             while (true) 
             {
                 Console.Clear();
                 mapGenerator.MapGen();
-                GC.Collect();
                 Console.WriteLine();
                 mapGenerator.DrawCurrentMapForTest();
 
